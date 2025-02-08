@@ -1,0 +1,147 @@
+#include <Wire.h>
+#include <WiFiClient.h>
+#include <ESP8266WiFi.h>
+#include <ArduinoWebsockets.h>
+#include <LiquidCrystal_I2C.h>
+
+using namespace websockets;
+
+WebsocketsClient socket;
+const char* websocketServer = "ws://192.168.8.125:81/";
+boolean connected = false;
+
+const char* ssid = "LOMNET HOME";
+const char* password = "1FNR6FM025J";
+
+LiquidCrystal_I2C lcd(0x27, 16, 2);
+
+// Define a structure to store timetable data
+struct TimetableData {
+  String classForm;
+  String data;
+};
+
+TimetableData currentTimetable; // Store the currently displayed timetable data
+
+void setup() {
+  Serial.begin(115200);
+  lcd.init();
+  lcd.begin(16, 2);
+  lcd.backlight(); // Turn on the backlight
+
+  lcd.setCursor(0, 0);
+  lcd.print("  Welcome to");
+  lcd.setCursor(0, 1);
+  lcd.print(" SchoolTMS");
+
+  delay(2000); // Display the welcome message for 2 seconds
+
+  lcd.clear();
+
+  connectWiFi();
+  connectToWebSocket();
+  socket.onMessage(handleMessage);
+  socket.onEvent(handleEvent);
+
+  // Initialize currentTimetable
+  currentTimetable.classForm = "";
+  currentTimetable.data = "";
+}
+
+void loop() {
+  if (!connected) {
+    Serial.println("Connecting to WebSocket server");
+    connectToWebSocket();
+  }
+  socket.poll();
+}
+
+void handleMessage(WebsocketsMessage message) {
+  Serial.println(message.data());
+  String data = message.data();
+
+  // Parse the received data and update currentTimetable
+  parseAndStoreData(data);
+
+  // Display the updated data on the LCD
+  updateLCD();
+}
+
+void parseAndStoreData(String data) {
+  // Assuming your data format is something like "Class:Form 1A Data"
+  // Split the data into classForm and actual data
+  int separatorIndex = data.indexOf(' ');
+  currentTimetable.classForm = data.substring(0, separatorIndex);
+  currentTimetable.data = data.substring(separatorIndex + 1);
+}
+
+void updateLCD() {
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print(currentTimetable.classForm);
+  lcd.setCursor(0, 1);
+  lcd.print(currentTimetable.data);
+}
+
+void handleEvent(WebsocketsEvent event, WSInterfaceString data) {
+  switch (event) {
+    case WebsocketsEvent::ConnectionOpened:
+      Serial.println("WebSocket connection established");
+      connected = true;
+      lcd.clear();
+      lcd.setCursor(0, 0);
+      lcd.print("Server Online");
+      lcd.setCursor(0, 1);
+      lcd.print("WiFi: Online");
+      break;
+    case WebsocketsEvent::ConnectionClosed:
+      Serial.println("WebSocket connection closed");
+      connected = false;
+      lcd.clear();
+      lcd.setCursor(0, 0);
+      lcd.print("Server Offline");
+      lcd.setCursor(0, 1);
+      lcd.print("WiFi: Online");
+      break;
+    case WebsocketsEvent::GotPing:
+      Serial.println("Received ping");
+      break;
+    case WebsocketsEvent::GotPong:
+      Serial.println("Received pong");
+      break;
+    default:
+      break;
+  }
+}
+
+void connectWiFi() {
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("Connecting to WiFi");
+
+  WiFi.mode(WIFI_OFF);
+  delay(1000);
+  WiFi.mode(WIFI_STA);
+
+  WiFi.begin(ssid, password);
+  Serial.println("Connecting to WiFi");
+
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+    lcd.setCursor(0, 1);
+    lcd.print("Connecting...");
+  }
+
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("WiFi Connected");
+  lcd.setCursor(0, 1);
+  lcd.print("IP: " + WiFi.localIP().toString());
+  delay(2000);
+}
+
+void connectToWebSocket() {
+  Serial.println("Connecting to WebSocket server");
+  socket.connect(websocketServer);
+}
