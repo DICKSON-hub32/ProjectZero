@@ -4,8 +4,8 @@
 #include <ArduinoJson.h>
 
 //const char* email = "brianndesa262@gmail.com";
-const char* ssid = "itelA25";
-const char* password = "12345677";
+const char* ssid = "Hillary";
+const char* password = "12345678";
 const char* serverAddress = "192.168.43.139";  // The domain address or IP address of the server
 const int serverPort = 8000;                      // port number the server listens on
 const String endpoint = "http://192.168.43.139:8000/receive_data/";                // URL where you want to send the JSON data
