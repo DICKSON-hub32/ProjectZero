@@ -67,7 +67,7 @@ def suggest_plant(Nitrogen, Phosphorous, Potassium, Ph,Humidity,Temperature,Mois
             "Content-Type": "application/json"
                 }  
 
-                payload = { "query": f'why should i choose this crop {row['crop_name']} in 50 words provide in {language}' }
+                payload = { "query": f'why should i choose this crop {row["crop_name"]} in 50 words provide in {language}' }
 
                 try:
                    response = requests.post(url, json=payload, headers=headers)

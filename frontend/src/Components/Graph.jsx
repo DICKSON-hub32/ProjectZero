@@ -53,7 +53,7 @@ const Graph = () => {
 
   
   return (
-    <div className='flex flex-wrap ' onClick={handleRemoveSideBar}>
+    <div className='flex flex-wrap bg-gray-50' onClick={handleRemoveSideBar}>
     <div className="container mx-auto p-4 max-w-[30rem]">
       <h1 className="text-2xl font-bold mb-4">Yearly Temperature.. Trend</h1>
       <div className="chart-container">

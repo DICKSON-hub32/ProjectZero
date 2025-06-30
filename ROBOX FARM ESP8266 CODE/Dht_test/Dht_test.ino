@@ -4,11 +4,11 @@
 #include <ArduinoJson.h>
 
 //const char* email = "brianndesa262@gmail.com";
-const char* ssid = "Hillary";
+const char* ssid = "Esamai";
 const char* password = "12345678";
-const char* serverAddress = "192.168.43.139";  // The domain address or IP address of the server
+const char* serverAddress = "192.168.227.223";  // The domain address or IP address of the server
 const int serverPort = 8000;                      // port number the server listens on
-const String endpoint = "http://192.168.43.139:8000/receive_data/";                // URL where you want to send the JSON data
+const String endpoint = "http://192.168.227.223:8000/receive_data/";                // URL where you want to send the JSON data
 
 WiFiClient client;  // WiFiClient object is created to establish a connection to the server
 

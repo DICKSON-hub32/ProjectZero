@@ -43,9 +43,9 @@ export default function NavBar(){
   
 
 
-   return( <div   className="flex items-center justify-between px-4 py-2 bg-[#cbc9be] h-16 sticky top-0 z-10">
+   return( <div   className=" ml-[2px] flex items-center justify-between px-4 py-2 bg-gray-800 h-14 sticky top-0 z-10">
         <div>
-            <img src={import.meta.env.VITE_API_URL+ setData.profile_pic} alt="profile " className="w-[55px] h-[55px] rounded-[50%]" />
+            <img src={import.meta.env.VITE_API_URL+ setData.profile_pic} alt="profile " className="w-[45px] h-[45px] rounded-[50%]" />
         </div>
         <div>
 
