@@ -276,7 +276,7 @@ class cropsSpecification(generics.ListCreateAPIView):
 # 'Moisture': 
 # 66, 'Nitrogen': 0.2, 'Phosporous': 0.15, 'Potassium': 0.3}
                 #   (Nitrogen, Phosphorous, Potassium, Latitude, Ph,Humidity,Temperature
-                # response = suggest_plant(data["Nitrogen"],data["Phosporous"] ,data["Potassium"] ,6.0, data["Humidity"],data["Temperature"],data["Moisture"])
+                # response = suggest_plant(data["Nitrogen"],data["Phosporous"] ,data["Potassium"] ,6.0, data["Humidity"],data["Temperature"],data["Moisture"],language)
                 response = suggest_plant(0.18, 0.13, 0.25, 6.5, 70, 24, 70,language)
                 # Check if response is a JsonResponse and extract data
                 if (response):
@@ -364,6 +364,7 @@ def receive_data(request):
             temperature = data.get('temperature')
             humidity = data.get('humidity')
             moisture = data.get('moisture')
+            print('data',data)
             
             # Validate that all required data is present
             if temperature is None or humidity is None or moisture is None:
