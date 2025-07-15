@@ -22,6 +22,48 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.decorators import permission_classes,api_view
 from .projects.main import suggest_plant
 import math
+# Django Views (views.py)
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_http_methods
+import json
+import requests
+from datetime import datetime, timedelta
+import logging
+import google.generativeai as genai
+logger = logging.getLogger(__name__)
+
+# Country-specific API configurations
+COUNTRY_API_MAP = {
+    "Kenya": {
+        "url": "https://kilimostat.go.ke/api/v1/crops",
+        "headers": {"Content-Type": "application/json"},
+        "crop_field": "crop_name",
+        "price_field": "price_per_kg",
+        "date_field": "date_recorded"
+    },
+    "Uganda": {
+        "url": "https://api.farmgainafrica.org/prices",
+        "headers": {"Authorization": "Bearer YOUR_TOKEN"},
+        "crop_field": "commodity",
+        "price_field": "average_price",
+        "date_field": "price_date"
+    },
+    "Ghana": {
+        "url": "https://api-agrosmart-esoko.onrender.com/market-prices/v1/daily",
+        "headers": {"X-API-Key": "YOUR_API_KEY"},
+        "crop_field": "product_name",
+        "price_field": "retail_price",
+        "date_field": "market_date"
+    },
+    "Tanzania": {
+        "url": "https://sautiafrica.org/api/prices",
+        "headers": {"Content-Type": "application/json"},
+        "crop_field": "crop_type",
+        "price_field": "market_price",
+        "date_field": "timestamp"
+    }
+}
 
 from .locationCordinator import get_coordinates
 
@@ -188,40 +230,13 @@ class getAiMessages(generics.ListCreateAPIView):
         return aiMessages.objects.filter(created_at__date=today)    
     def post(self,request):
        print(request.data)
-    #    url = "https://gemini-pro-ai.p.rapidapi.com/"
-       url = "https://chatgpt4-ai-chatbot.p.rapidapi.com/ask"
+    #  url = "https://gemini-pro-ai.p.rapidapi.com/"
+       genai.configure(api_key="AIzaSyDrUD7esKFGnO0b8EvpVGLtOiEpYdpkbW4")
+       model = genai.GenerativeModel('gemini-1.5-flash')
 
-#        payload = { "query": request.data['request'] }
-#        headers = {
-# 	"x-rapidapi-key": "5fc7178995msh2782aca5a7c677ep1c55bfjsn44e47f7e452e",
-# 	"x-rapidapi-host": "chatgpt4-ai-chatbot.p.rapidapi.com",
-# 	"Content-Type": "application/json"
-# }
-       
-       payload = { "query": request.data['request'] }
-
-       headers = {
-
-            "x-rapidapi-key": "e08368f7a7msha8ba132fff83c24p146541jsn00e14b7db420",
-
-            "x-rapidapi-host": "chatgpt4-ai-chatbot.p.rapidapi.com",
-
-            "Content-Type": "application/json"
-
-        }
-# #  def suggest_plant(Nitrogen,Phosphorous,Potassium,Latitude,Ph):
-# crop_name,Nitrogen (g/kg),Phosphorous (g/kg),Potassium (g/kg),Soil Moisture (%),Number of times of irrigation in a day,Number of days of irrigation in a week,Latitude,Soil pH
-# Maize,1.8-2.2,1.3-1.7,2.8-3.2,60-70,1,3,1.2900-1.2950,5.5-7.0
-# Rice,2.3-2.7,1.6-2.0,2.6-3.0,70-80,2,6,1.2900-1.2950,5.0-6.5
-# Wheat,1.6-1.9,1.1-1.3,2.3-2.7,50-60,1,3,1.2900-1.2950,6.0-7.5
-# Sorghum,1.4-1.6,0.9-1.1,1.9-2.1,40-50,1,2,1.2900-1.2950,5.5-7.0
-# Millet,1.1-1.3,0.7-0.9,1.7-1.9,30-40,1,2,1.2900-1.2950,5.0-6.5
-
-      
-         
-       response = requests.post(url, json=payload, headers=headers)
-       print(response.json(),"hellooo")
-       response=response.json()['response']
+        # Generate response
+       response = model.generate_content(request.data['request'])
+       response = response.text
      
        data={'request':request.data.get('request'),'response':response,'user':request.user.pk}
        serializer=self.get_serializer(data=data)
@@ -264,77 +279,28 @@ class cropsSpecification(generics.ListCreateAPIView):
         else:
             return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
     def post(self, request):
-            try:
-                data=request.data
-                print('mydata ',data)
-                language=request.query_params.get('ln')
-                print(language)
-                    # Fetch data using your AI function
-                # def suggest_plant(Nitrogen, Phosphorous, Potassium, Latitude, Ph):
-                # print(res, 'my data set for crops')
-                    # Fetch data using your AI function{'Temperature': 26, 'Humidity': 65, 
-# 'Moisture': 
-# 66, 'Nitrogen': 0.2, 'Phosporous': 0.15, 'Potassium': 0.3}
-                #   (Nitrogen, Phosphorous, Potassium, Latitude, Ph,Humidity,Temperature
-                # response = suggest_plant(data["Nitrogen"],data["Phosporous"] ,data["Potassium"] ,6.0, data["Humidity"],data["Temperature"],data["Moisture"],language)
-                response = suggest_plant(0.18, 0.13, 0.25, 6.5, 70, 24, 70,language)
-                # Check if response is a JsonResponse and extract data
-                if (response):
-                    print('my response =',response)
-                    serializer = self.get_serializer(data=response, many=True)
-                    if serializer.is_valid():
-                        serializer.save()
-                        print('serialized data= ',serializer.data)
-                        return Response({'message':serializer.data}, status=status.HTTP_200_OK)
-                    return Response({'Error':serializer.errors},status=status.HTTP_400_BAD_REQUEST)
-                else:
-                    return Response({'message': 'No Match Found'}, status=status.HTTP_200_OK)
-            except Exception as e:
-                return Response({'Error ':str(e)},status=status.HTTP_400_BAD_REQUEST)
-                # Extract the suggested crops from the response data
-            #     res= response_data.get('suggested_crops', [])
-                
-            #     # Create instances of cropSpecs
-            #     crops_to_create = []
-            #     for element in res:
-            #         crops_to_create.append(cropSpecs(
-            #             crop_name=element['crop_name'],
-            #             Temperature=element['Temperature'],
-            #             Humidity=element['Humidity'],
-            #             Moisture=element['Moisture'],
-            #             Nitrogen=element['Nitrogen'],
-            #             description=element['description'],
-            #             Phosporous=element['Phosporous'],
-            #             Potassium=element['Potassium'],
-            #             Irrigation_interval=element.get('Irrigation_interval', 1),  # Default to 1 if not provided
-            #             No_of_irigation_per_day=element.get('No_of_irigation_per_day', 1),  # Default to 1 if not provided
-            #             No_of_irigation_per_week=element.get('No_of_irigation_per_week', 1),  # Default to 1 if not provided
-            #             Altitude=element.get('Altitude', 1),  # Default to 1 if not provided
-            #             Soil_pH=element.get('Soil_pH', 1),  # Default to 1 if not provided
-            #             created_at=timezone.now(),
-            #             isChosen=False
-            #         ))
-
-            #     # Bulk create instances
-            #     cropSpecs.objects.bulk_create(crops_to_create)
-                
-                # Serialize the created instances
-            #     print(serializer.data, 'my serializer')
-
-            #     return Response({'message': 'Crops created successfully', 'data': serializer.data}, status=status.HTTP_201_CREATED)
+        try:
+            data = request.data
+            language = request.query_params.get('ln')
             
-            # except Exception as e:
-            #     return Response({'message': 'Error in AI', 'Error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-            #         serializer=self.get_serializer(data=res)
-            #         if serializer.is_valid():
-            #             try:
-            #                 instance=serializer.save()
-            #                 return Response(serializer.data,status=status.HTTP_200_OK)
-            #             except Exception as e:
-            #                 return Response({'message':str(e)},status=status.HTTP_400_BAD_REQUEST)
-            #         else:
-            #             return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
-              
+            response = suggest_plant(0.18, 0.13, 0.25, 6.5, 70, 24, 70, language)
+            
+            # Add this check to handle empty responses
+            if not response or len(response) == 0:
+                return Response({'message': 'No Match Found'}, status=status.HTTP_200_OK)
+            
+            # Check if response is a list (expected format)
+            if isinstance(response, list):
+                serializer = self.get_serializer(data=response, many=True)
+                if serializer.is_valid():
+                    serializer.save()
+                    return Response({'message': serializer.data}, status=status.HTTP_200_OK)
+                return Response({'Error': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+            else:
+                return Response({'message': 'Invalid response format from AI'}, status=status.HTTP_400_BAD_REQUEST)
+                
+        except Exception as e:
+            return Response({'Error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 class updateArduinoData(generics.ListCreateAPIView):
     permission_classes=[IsAuthenticated]
     serializer_class=arduinoDataSerializer
@@ -443,3 +409,271 @@ def locationData(request):
     
     except Exception as e:
         return Response({'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+def normalize_crop_data(raw_data, country_config):
+    """Normalize data from different APIs into a consistent format"""
+    normalized_data = []
+    
+    for item in raw_data:
+        try:
+            normalized_item = {
+                "crop_name": item.get(country_config["crop_field"], "Unknown"),
+                "price": float(item.get(country_config["price_field"], 0)),
+                "date": item.get(country_config["date_field"], datetime.now().isoformat()),
+                "currency": item.get("currency", "Local Currency"),
+                "market": item.get("market_name", "Unknown Market"),
+                "unit": item.get("unit", "kg")
+            }
+            normalized_data.append(normalized_item)
+        except (ValueError, TypeError) as e:
+            logger.warning(f"Error normalizing item: {item}, Error: {e}")
+            continue
+    
+    return normalized_data
+
+@csrf_exempt
+@require_http_methods(["GET", "POST"])
+def get_crop_prices(request):
+    """Get crop prices for a specific country"""
+    
+    if request.method == "GET":
+        country = request.GET.get('country', 'Kenya')
+        crop_type = request.GET.get('crop_type', '')
+        days = int(request.GET.get('days', 30))
+    else:
+        data = json.loads(request.body)
+        country = data.get('country', 'Kenya')
+        crop_type = data.get('crop_type', '')
+        days = int(data.get('days', 30))
+    
+    if country not in COUNTRY_API_MAP:
+        return JsonResponse({
+            'error': f'Country {country} not supported',
+            'supported_countries': list(COUNTRY_API_MAP.keys())
+        }, status=400)
+    
+    try:
+        # Get API configuration for the country
+        api_config = COUNTRY_API_MAP[country]
+        
+        # Build request parameters
+        params = {
+            'limit': 1000,
+            'days': days
+        }
+        
+        if crop_type:
+            params['crop'] = crop_type
+        
+        # Make API request
+        response = requests.get(
+            api_config["url"],
+            headers=api_config["headers"],
+            params=params,
+            timeout=30
+        )
+        
+        if response.status_code != 200:
+            return JsonResponse({
+                'error': f'Failed to fetch data from {country} API',
+                'status_code': response.status_code
+            }, status=response.status_code)
+        
+        raw_data = response.json()
+        
+        # Handle different response structures
+        if isinstance(raw_data, dict):
+            crop_data = raw_data.get('data', raw_data.get('results', [raw_data]))
+        else:
+            crop_data = raw_data
+        
+        # Normalize the data
+        normalized_data = normalize_crop_data(crop_data, api_config)
+        
+        # Filter by crop type if specified
+        if crop_type:
+            normalized_data = [
+                item for item in normalized_data 
+                if crop_type.lower() in item['crop_name'].lower()
+            ]
+        
+        # Calculate trends and insights
+        insights = calculate_market_insights(normalized_data)
+        
+        return JsonResponse({
+            'country': country,
+            'crop_type': crop_type,
+            'total_records': len(normalized_data),
+            'data': normalized_data,
+            'insights': insights,
+            'last_updated': datetime.now().isoformat()
+        })
+        
+    except requests.RequestException as e:
+        logger.error(f"API request failed for {country}: {e}")
+        return JsonResponse({
+            'error': 'Failed to fetch market data',
+            'details': str(e)
+        }, status=500)
+    
+    except Exception as e:
+        logger.error(f"Unexpected error: {e}")
+        return JsonResponse({
+            'error': 'Internal server error',
+            'details': str(e)
+        }, status=500)
+
+def calculate_market_insights(data):
+    """Calculate market trends and insights"""
+    if not data:
+        return {}
+    
+    # Group by crop
+    crop_groups = {}
+    for item in data:
+        crop = item['crop_name']
+        if crop not in crop_groups:
+            crop_groups[crop] = []
+        crop_groups[crop].append(item)
+    
+    insights = {
+        'top_performing_crops': [],
+        'declining_crops': [],
+        'stable_crops': [],
+        'market_summary': {}
+    }
+    
+    for crop, prices in crop_groups.items():
+        if len(prices) < 2:
+            continue
+            
+        # Sort by date
+        sorted_prices = sorted(prices, key=lambda x: x['date'])
+        
+        # Calculate trend
+        recent_prices = [p['price'] for p in sorted_prices[-7:]]  # Last 7 records
+        older_prices = [p['price'] for p in sorted_prices[:-7]]   # Earlier records
+        
+        if older_prices and recent_prices:
+            avg_recent = sum(recent_prices) / len(recent_prices)
+            avg_older = sum(older_prices) / len(older_prices)
+            
+            change_percent = ((avg_recent - avg_older) / avg_older) * 100
+            
+            crop_insight = {
+                'crop': crop,
+                'current_avg_price': round(avg_recent, 2),
+                'previous_avg_price': round(avg_older, 2),
+                'change_percent': round(change_percent, 2),
+                'trend': 'rising' if change_percent > 5 else 'declining' if change_percent < -5 else 'stable'
+            }
+            
+            if change_percent > 5:
+                insights['top_performing_crops'].append(crop_insight)
+            elif change_percent < -5:
+                insights['declining_crops'].append(crop_insight)
+            else:
+                insights['stable_crops'].append(crop_insight)
+    
+    # Sort by change percentage
+    insights['top_performing_crops'].sort(key=lambda x: x['change_percent'], reverse=True)
+    insights['declining_crops'].sort(key=lambda x: x['change_percent'])
+    
+    # Market summary
+    all_prices = [item['price'] for item in data]
+    insights['market_summary'] = {
+        'total_crops': len(crop_groups),
+        'avg_market_price': round(sum(all_prices) / len(all_prices), 2) if all_prices else 0,
+        'highest_price': max(all_prices) if all_prices else 0,
+        'lowest_price': min(all_prices) if all_prices else 0
+    }
+    
+    return insights
+
+@csrf_exempt
+@require_http_methods(["GET"])
+def get_supported_countries(request):
+    """Get list of supported countries and their crop types"""
+    
+    countries_info = {}
+    
+    for country, config in COUNTRY_API_MAP.items():
+        countries_info[country] = {
+            'api_url': config['url'],
+            'supported_fields': [
+                config['crop_field'],
+                config['price_field'],
+                config['date_field']
+            ]
+        }
+    
+    return JsonResponse({
+        'supported_countries': countries_info,
+        'total_countries': len(COUNTRY_API_MAP)
+    })
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def compare_crop_across_countries(request):
+    """Compare a specific crop across multiple countries"""
+    
+    data = json.loads(request.body)
+    crop_name = data.get('crop_name', '')
+    countries = data.get('countries', list(COUNTRY_API_MAP.keys()))
+    
+    if not crop_name:
+        return JsonResponse({'error': 'Crop name is required'}, status=400)
+    
+    comparison_data = {}
+    
+    for country in countries:
+        if country not in COUNTRY_API_MAP:
+            continue
+            
+        try:
+            # Make request to country-specific API
+            api_config = COUNTRY_API_MAP[country]
+            response = requests.get(
+                api_config["url"],
+                headers=api_config["headers"],
+                params={'crop': crop_name, 'limit': 100},
+                timeout=30
+            )
+            
+            if response.status_code == 200:
+                raw_data = response.json()
+                if isinstance(raw_data, dict):
+                    crop_data = raw_data.get('data', raw_data.get('results', []))
+                else:
+                    crop_data = raw_data
+                
+                normalized_data = normalize_crop_data(crop_data, api_config)
+                
+                # Filter for specific crop
+                filtered_data = [
+                    item for item in normalized_data 
+                    if crop_name.lower() in item['crop_name'].lower()
+                ]
+                
+                if filtered_data:
+                    avg_price = sum(item['price'] for item in filtered_data) / len(filtered_data)
+                    comparison_data[country] = {
+                        'average_price': round(avg_price, 2),
+                        'records_count': len(filtered_data),
+                        'latest_price': filtered_data[-1]['price'] if filtered_data else 0,
+                        'currency': filtered_data[0].get('currency', 'Local Currency')
+                    }
+        
+        except Exception as e:
+            logger.error(f"Error fetching data for {country}: {e}")
+            comparison_data[country] = {'error': str(e)}
+    
+    return JsonResponse({
+        'crop_name': crop_name,
+        'comparison': comparison_data,
+        'best_market': max(comparison_data.items(), 
+                          key=lambda x: x[1].get('average_price', 0) if 'error' not in x[1] else 0)[0] 
+                          if comparison_data else None
+    })

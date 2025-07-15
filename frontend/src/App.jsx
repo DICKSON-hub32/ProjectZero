@@ -7,6 +7,7 @@ import {Navigate,Routes,Route,BrowserRouter} from 'react-router-dom'
 import ProtectedRoute from './Components/ProtectedRoute'
 import NotFound from './Components/NotFound'
 import ChatAi from './Pages/ChatAi'
+import Analytics from './Pages/Analytics'
 import Automation from './Pages/Automation'
 
 function App() {
@@ -23,6 +24,7 @@ function App() {
         <Route path="/register" element={<Register route='register/' method='register'/>} />
         <Route element={<ProtectedRoute/>}>
         <Route path='/chat_ai' element={<ChatAi/>} exact/>
+        <Route path='/analytics' element={<Analytics/>} exact/>
         </Route>,
         <Route element={<ProtectedRoute/>}>
         <Route path='/automation' element={<Automation/>}/>

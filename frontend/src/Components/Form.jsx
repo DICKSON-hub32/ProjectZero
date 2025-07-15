@@ -58,7 +58,7 @@ const LoginModal = ({ isOpen, onClose }) => {
           <X size={24} />
         </button>
         
-        <h2 className="text-2xl font-bold mb-6 text-center text-gray-800">Login to AgriGenix</h2>
+        <h2 className="text-2xl font-bold mb-6 text-center text-gray-800">Login to shambaSmart</h2>
         
         <form onSubmit={handleSubmit} className="space-y-4">
           <input
@@ -139,7 +139,7 @@ export default function AgriGenixLanding() {
         <div className="flex items-center justify-between px-6 py-4">
           <div className="flex items-center space-x-2">
             <Leaf className="text-green-600" size={32} />
-            <span className="text-xl font-bold text-gray-800">AgriGenix</span>
+            <span className="text-xl font-bold text-gray-800">shambaSmart</span>
           </div>
           
           <div className="hidden md:flex items-center space-x-8">
@@ -181,7 +181,7 @@ export default function AgriGenixLanding() {
                 </h1>
                 
                 <p className="text-xl text-gray-200 mb-8 max-w-2xl">
-                  Explore how AgriGenix is transforming farming with cutting-edge biotech solutions that increase crop yields, reduce environmental impact, and ensure sustainable agriculture.
+                  Explore how shambaSmart is transforming farming with cutting-edge biotech solutions that increase crop yields, reduce environmental impact, and ensure sustainable agriculture.
                 </p>
                 
                 <div className="flex flex-col sm:flex-row gap-4 mb-12">
@@ -222,7 +222,7 @@ export default function AgriGenixLanding() {
                     <div className="text-3xl font-bold text-white">80%+</div>
                     <div className="text-gray-300 text-sm">Improvement</div>
                     <div className="text-gray-400 text-xs mt-1">
-                      Increase in crop yield using AgriGenix biotechnology solutions
+                      Increase in crop yield using shambaSmart biotechnology solutions
                     </div>
                   </div>
                   

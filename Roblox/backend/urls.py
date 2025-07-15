@@ -20,5 +20,13 @@ urlpatterns=[
     path('pump_command/',views.pump_command,name='pump_command'),
     path('api/crop_specification/',views.cropsSpecification.as_view(),name='cropSpecification'),
     path('receive_data/',views.receive_data,name='receive_data'),
-    path('locationData/',views.locationData,name='locationData')
+    path('locationData/',views.locationData,name='locationData'),
+
+    path('api/crop-prices/', views.get_crop_prices, name='crop_prices'),
+    
+    # Get supported countries
+    path('api/countries/', views.get_supported_countries, name='supported_countries'),
+    
+    # Compare crop across countries
+    path('api/compare-crop/', views.compare_crop_across_countries, name='compare_crop'),
 ]+static(settings.MEDIA_URL,document_root=settings.MEDIA_ROOT)

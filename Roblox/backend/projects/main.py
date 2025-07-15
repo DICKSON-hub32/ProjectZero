@@ -2,6 +2,7 @@ import pandas as pd
 import os
 from django.http import JsonResponse
 import requests
+import google.generativeai as genai
 
 # Set up paths
 base_dir = os.path.dirname(os.path.abspath(__file__))
@@ -59,24 +60,21 @@ def suggest_plant(Nitrogen, Phosphorous, Potassium, Ph,Humidity,Temperature,Mois
     # Irrigation_interval=models.IntegerField(blank=False,default=1)
     # created_at=models.DateTimeField(default=timezone.now())
     # isChosen=models.BooleanField(default=False)
-                url = "https://chatgpt4-ai-chatbot.p.rapidapi.com/ask"
+                genai.configure(api_key="AIzaSyDrUD7esKFGnO0b8EvpVGLtOiEpYdpkbW4")
+                model = genai.GenerativeModel('gemini-1.5-flash')
 
-                headers = {
-            "x-rapidapi-key": "e08368f7a7msha8ba132fff83c24p146541jsn00e14b7db420",
-            "x-rapidapi-host": "chatgpt4-ai-chatbot.p.rapidapi.com",
-            "Content-Type": "application/json"
-                }  
-
-                payload = { "query": f'why should i choose this crop {row["crop_name"]} in 50 words provide in {language}' }
+                # Replace the API call with:
+                query = f'why should i choose this crop {row["crop_name"]} in 50 words provide in {language}'
 
                 try:
-                   response = requests.post(url, json=payload, headers=headers)
+                   response = model.generate_content(query)
+                   response_text = response.text  # Extract the actual text content
                 except Exception as e:
                     print(str(e),'an error has occured ')
                     return response({'error':str(e)})
                 crop_details = {
                     'crop_name': row['crop_name'],
-                    'description':response.json()['response'],
+                    'description':response_text,
                     'Nitrogen': row['Nitrogen (%)'],
                     'Phosporous': row['Phosphorous (%)'],
                     'Potassium': row['Potassium (%)'],
@@ -108,7 +106,7 @@ def suggest_plant(Nitrogen, Phosphorous, Potassium, Ph,Humidity,Temperature,Mois
         return suggested_crops
 
     except Exception as e:
-        print(f"Error in suggest_plant: {e}")
-        return JsonResponse({'error': "Error in AI processing."})
+        print(str(e),'an error has occured ')
+        return []  # Return empty list instead of JsonResponse
 
 # Django view function example
