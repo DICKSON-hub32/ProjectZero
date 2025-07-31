@@ -24,7 +24,7 @@ def check_range(value, range_str):
 def filter_crops(suggested_crops):
     return [crop for crop in suggested_crops if crop in dataset['crop_name'].values]
 
-def suggest_plant(Nitrogen, Phosphorous, Potassium, Ph,Humidity,Temperature,Moisture,language):
+def suggest_plant(Nitrogen, Phosphorous, Potassium, Ph,Humidity,Temperature,Moisture,language, location=None, season=None):
     try:
         # Convert input values to floats
         Nitrogen = float(Nitrogen)
@@ -60,11 +60,46 @@ def suggest_plant(Nitrogen, Phosphorous, Potassium, Ph,Humidity,Temperature,Mois
     # Irrigation_interval=models.IntegerField(blank=False,default=1)
     # created_at=models.DateTimeField(default=timezone.now())
     # isChosen=models.BooleanField(default=False)
-                genai.configure(api_key="AIzaSyDrUD7esKFGnO0b8EvpVGLtOiEpYdpkbW4")
-                model = genai.GenerativeModel('gemini-1.5-flash')
+                genai.configure(api_key="AIzaSyD2aILZSjqcXNQ8s01iR6RoSFjNvBpzYYA")
+                model = genai.GenerativeModel('gemini-2.0-flash')
 
-                # Replace the API call with:
-                query = f'why should i choose this crop {row["crop_name"]} in 50 words provide in {language}'
+                # Create comprehensive query with all available data
+                location_info = f" in {location}" if location else ""
+                season_info = f" during {season} season" if season else ""
+                
+                query = f"""
+                You are an expert agricultural advisor specializing in East African farming. Provide comprehensive farming advice for {row["crop_name"]}{location_info}{season_info} in {language} language.
+                
+                Current soil and environmental conditions:
+                - Nitrogen: {Nitrogen}% (Optimal range: {row['Nitrogen (%)']})
+                - Phosphorous: {Phosphorous}% (Optimal range: {row['Phosphorous (%)']})
+                - Potassium: {Potassium}% (Optimal range: {row['Potassium (%)']})
+                - Soil pH: {Ph} (Optimal range: {row['Soil pH']})
+                - Temperature: {Temperature}°C (Optimal range: {row['Temperature (°C)']})
+                - Humidity: {Humidity}% (Optimal range: {row['Humidity (%)']})
+                - Soil Moisture: {Moisture}% (Optimal range: {row['Soil Moisture (%)']})
+                
+                Irrigation requirements:
+                - Water {row['Number of times of irrigation in a day']} times per day
+                - Irrigate {row['Number of days of irrigation in a week']} days per week
+                
+                Please provide practical advice covering:
+                1. **Suitability**: Why this crop matches your current soil and climate conditions perfectly
+                2. **Economic Benefits**: Current market demand, expected profit margins, and potential income per acre
+                3. **Growing Timeline**: Complete planting to harvest timeline with critical milestones (germination, flowering, maturity)
+                4. **Care Instructions**: 
+                   - Essential fertilizer application schedule
+                   - Common pests and diseases with prevention methods
+                   - Optimal planting spacing and depth
+                   - Critical watering stages
+                5. **Harvest & Storage**: 
+                   - Signs of readiness for harvest
+                   - Best harvesting techniques to maximize yield
+                   - Post-harvest handling and storage methods
+                   - Market timing for best prices
+                
+                Focus on practical, cost-effective solutions for small-scale farmers. Include specific timeframes, measurements, and actionable steps they can implement immediately.
+                """
 
                 try:
                    response = model.generate_content(query)

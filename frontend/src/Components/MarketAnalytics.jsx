@@ -579,16 +579,14 @@ export default function CropMarketDashboard() {
     return chartData;
   };
 
-  const formatCurrency = (value, currency = "USD") => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: currency === "Local Currency" ? "USD" : currency,
+  const formatCurrency = (value, currency = "KSH") => {
+    return `KSH ${value.toLocaleString('en-US', {
       minimumFractionDigits: 0,
       maximumFractionDigits: 2
-    }).format(value);
+    })}`;
   };
 
-  const formatPriceWithUnit = (value, currency = "USD", unit = "kg") => {
+  const formatPriceWithUnit = (value, currency = "KSH", unit = "kg") => {
     const formattedPrice = formatCurrency(value, currency);
     return `${formattedPrice}/${unit}`;
   };
@@ -608,7 +606,7 @@ export default function CropMarketDashboard() {
     const totalRecords = cropData.length;
     const avgPrice = cropData.reduce((sum, item) => sum + item.price, 0) / cropData.length;
     const unit = cropData[0]?.unit || "kg";
-    const currency = cropData[0]?.currency || "USD";
+    const currency = cropData[0]?.currency || "KSH";
 
     return {
       totalRecords,
@@ -890,7 +888,7 @@ export default function CropMarketDashboard() {
                         tickFormatter={(value) => new Date(value).toLocaleDateString()}
                       />
                       <YAxis 
-                        label={{ value: `Price (${getSelectedCropData()[0]?.currency || 'USD'}/${getSelectedCropData()[0]?.unit || 'kg'})`, angle: -90, position: 'insideLeft' }}
+                        label={{ value: `Price (${getSelectedCropData()[0]?.currency || 'KSH'}/${getSelectedCropData()[0]?.unit || 'kg'})`, angle: -90, position: 'insideLeft' }}
                       />
                       <Tooltip 
                         labelFormatter={(value) => new Date(value).toLocaleDateString()}
@@ -970,7 +968,7 @@ export default function CropMarketDashboard() {
                     <Tooltip 
                       labelFormatter={(value) => new Date(value).toLocaleDateString()}
                       formatter={(value, name) => [
-                        formatCurrency(value),
+                        formatCurrency(value, "KSH"),
                         name
                       ]}
                     />
@@ -1007,7 +1005,7 @@ export default function CropMarketDashboard() {
                     />
                     <Tooltip 
                       formatter={(value, name) => [
-                        formatPriceWithUnit(value, 'USD', marketData.insights?.market_summary?.unit),
+                        formatPriceWithUnit(value, 'KSH', marketData.insights?.market_summary?.unit),
                         'Average Price'
                       ]}
                     />
@@ -1036,7 +1034,7 @@ export default function CropMarketDashboard() {
                   <p className="text-2xl font-bold text-green-900">
                     {formatPriceWithUnit(
                       marketData.insights?.market_summary?.avg_market_price || 0,
-                      'USD',
+                      'KSH',
                       marketData.insights?.market_summary?.unit
                     )}
                   </p>
@@ -1046,7 +1044,7 @@ export default function CropMarketDashboard() {
                   <p className="text-2xl font-bold text-red-900">
                     {formatPriceWithUnit(
                       marketData.insights?.market_summary?.highest_price || 0,
-                      'USD',
+                      'KSH',
                       marketData.insights?.market_summary?.unit
                     )}
                   </p>
@@ -1056,7 +1054,7 @@ export default function CropMarketDashboard() {
                   <p className="text-2xl font-bold text-yellow-900">
                     {formatPriceWithUnit(
                       marketData.insights?.market_summary?.lowest_price || 0,
-                      'USD',
+                      'KSH',
                       marketData.insights?.market_summary?.unit
                     )}
                   </p>
@@ -1078,7 +1076,7 @@ export default function CropMarketDashboard() {
                       <div>
                         <p className="font-medium text-gray-900">{crop.crop}</p>
                         <p className="text-sm text-gray-600">
-                          {formatPriceWithUnit(crop.current_avg_price, 'USD', crop.unit)}
+                          {formatPriceWithUnit(crop.current_avg_price, 'KSH', crop.unit)}
                         </p>
                       </div>
                       <div className="text-right">
@@ -1102,7 +1100,7 @@ export default function CropMarketDashboard() {
                       <div>
                         <p className="font-medium text-gray-900">{crop.crop}</p>
                         <p className="text-sm text-gray-600">
-                          {formatPriceWithUnit(crop.current_avg_price, 'USD', crop.unit)}
+                          {formatPriceWithUnit(crop.current_avg_price, 'KSH', crop.unit)}
                         </p>
                       </div>
                       <div className="text-right">
@@ -1126,7 +1124,7 @@ export default function CropMarketDashboard() {
                       <div>
                         <p className="font-medium text-gray-900">{crop.crop}</p>
                         <p className="text-sm text-gray-600">
-                          {formatPriceWithUnit(crop.current_avg_price, 'USD', crop.unit)}
+                          {formatPriceWithUnit(crop.current_avg_price, 'KSH', crop.unit)}
                         </p>
                       </div>
                       <div className="text-right">

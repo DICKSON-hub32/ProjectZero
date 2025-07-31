@@ -29,4 +29,8 @@ urlpatterns=[
     
     # Compare crop across countries
     path('api/compare-crop/', views.compare_crop_across_countries, name='compare_crop'),
+    
+    # SMS Settings
+    path('sms-settings/', views.SMSSettingsView.as_view(), name='sms_settings'),
+    path('sms-logs/', views.SMSLogView.as_view(), name='sms_logs'),
 ]+static(settings.MEDIA_URL,document_root=settings.MEDIA_ROOT)

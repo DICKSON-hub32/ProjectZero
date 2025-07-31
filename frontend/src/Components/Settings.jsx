@@ -17,7 +17,33 @@ export default function(){
         country:'',county:'',sub_county:''
     })
     const [edit,enableEdit]=useState(false)
+    const [smsSettings,setSmsSettings]=useState({
+        interval_seconds:'',
+        phone_numbers:[''],
+        is_enabled:false
+    })
+    const [smsEdit,enableSmsEdit]=useState(false)
     const dispatch=useDispatch()
+
+    useEffect(() => {
+        if (active === '4') {
+            fetchSmsSettings()
+        }
+    }, [active])
+
+    async function fetchSmsSettings() {
+        try {
+            const response = await api.get('sms-settings/')
+            const data = response.data
+            setSmsSettings({
+                interval_seconds: data.interval_seconds || '',
+                phone_numbers: data.phone_numbers?.map(pn => pn.phone_number) || [''],
+                is_enabled: data.is_enabled || false
+            })
+        } catch (error) {
+            console.error('Error fetching SMS settings:', error)
+        }
+    }
 
 
 
@@ -95,6 +121,46 @@ function handleBtn(e){
    setActive(e.target.id)
 }
 
+function handleSmsSettings(e){
+    if(e.target.type === 'checkbox'){
+        setSmsSettings({...smsSettings, is_enabled: e.target.checked})
+    } else {
+        setSmsSettings({...smsSettings, [e.target.id]: e.target.value})
+    }
+}
+
+function handlePhoneNumber(index, value){
+    const updatedNumbers = [...smsSettings.phone_numbers]
+    updatedNumbers[index] = value
+    setSmsSettings({...smsSettings, phone_numbers: updatedNumbers})
+}
+
+function addPhoneNumber(){
+    setSmsSettings({...smsSettings, phone_numbers: [...smsSettings.phone_numbers, '']})
+}
+
+function removePhoneNumber(index){
+    const updatedNumbers = smsSettings.phone_numbers.filter((_, i) => i !== index)
+    setSmsSettings({...smsSettings, phone_numbers: updatedNumbers})
+}
+
+function handleSmsEdit(){
+    enableSmsEdit(true)
+}
+
+async function saveSmsSettings(){
+    try {
+        console.log('Sending SMS settings:', smsSettings)
+        const res = await api.put('sms-settings/', smsSettings)
+        enableSmsEdit(false)
+        console.log('SMS settings saved successfully:', res.data)
+        alert('SMS settings saved successfully!')
+    } catch (error) {
+        console.error('Error saving SMS settings:', error)
+        alert('Failed to save SMS settings. Please try again.')
+    }
+}
+
     return(
         
         <div onClick={handleOverlay} className={`${isSettings?'':'hidden'} h-full bg-opacity-80 flex flex-col justify-center items-center bg-slate-700  text-wrap fixed z-50 right-0 left-0 text-gray-900 text-lg font-semibold   w-[100%]`}>
@@ -103,6 +169,7 @@ function handleBtn(e){
             <button id='1' className={`${active!='1'&&'bg-transparent'} `} onClick={handleBtn}>Edit profile</button>
                 <button id='2' className={`${active!='2'&&'bg-transparent'}`} onClick={handleBtn}>Location</button>
                 <button id='3' className={`${active!='3'&&'bg-transparent'}`} onClick={handleBtn}>User data</button>
+                <button id='4' className={`${active!='4'&&'bg-transparent'}`} onClick={handleBtn}>SMS Settings</button>
             </div>
            {active==='1'&& <div className="y flex flex-col top-2  right-0">
               <div className="flex flex-col items-center gap-2">
@@ -166,6 +233,93 @@ function handleBtn(e){
 
                 </div>
 
+             </div>}
+             {active==='4'&&<div className="flex flex-col items-start min-w-[9rem] gap-3 w-[100%]">
+                <div className="SMS Settings px-4 bg-white pt-2 h-[97%] rounded-md w-[100%] max-w-96">
+                    <div className="flex flex-row justify-between">
+                        <span>SMS Notifications</span>
+                        {smsEdit===false?<button onClick={handleSmsEdit} className="text-black bg-red-400 text-sm outline-none mb-3 focus:outline-none">Edit</button>:
+                        <button onClick={saveSmsSettings} className="text-black bg-green-400 text-sm mb-3 border-none focus:outline-none">Save Changes</button>
+                        }
+                    </div>
+                    
+                    <div className="flex flex-col gap-3">
+                        <div className="flex items-center gap-2">
+                            <input 
+                                type="checkbox" 
+                                id="is_enabled" 
+                                checked={smsSettings.is_enabled}
+                                onChange={handleSmsSettings}
+                                disabled={!smsEdit}
+                                className="mr-2"
+                            />
+                            <label htmlFor="is_enabled">Enable SMS Notifications</label>
+                        </div>
+                        
+                        <div className="flex flex-row gap-1 justify-between items-center">
+                            <label htmlFor="interval_seconds">Interval (seconds):</label>
+                            <input 
+                                type="number" 
+                                id="interval_seconds" 
+                                value={smsSettings.interval_seconds}
+                                onChange={handleSmsSettings}
+                                readOnly={!smsEdit}
+                                className="border-2 w-20 px-2"
+                                min="10"
+                                max="3600"
+                                placeholder="30"
+                            />
+                        </div>
+                        
+                        <div className="flex flex-col gap-2">
+                            <label>Phone Numbers:</label>
+                            {smsSettings.phone_numbers.map((number, index) => (
+                                <div key={index} className="flex gap-2 items-center">
+                                    <input 
+                                        type="tel" 
+                                        value={number}
+                                        onChange={(e) => handlePhoneNumber(index, e.target.value)}
+                                        readOnly={!smsEdit}
+                                        className="border-2 flex-1 px-2"
+                                        placeholder="+254712345678"
+                                    />
+                                    {smsEdit && smsSettings.phone_numbers.length > 1 && (
+                                        <button 
+                                            onClick={() => removePhoneNumber(index)}
+                                            className="bg-red-500 text-white px-2 py-1 rounded text-xs"
+                                        >
+                                            Remove
+                                        </button>
+                                    )}
+                                </div>
+                            ))}
+                            {smsEdit && (
+                                <button 
+                                    onClick={addPhoneNumber}
+                                    className="bg-blue-500 text-white px-3 py-1 rounded text-sm w-fit"
+                                >
+                                    Add Phone Number
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                    
+                    <div className="w-full flex justify-center items-center mt-4">
+                        <button 
+                            className={`mt-2 text-black bg-red-400 ${!smsEdit&&'hidden'} focus:outline-none border-none text-sm`} 
+                            onClick={()=>{
+                                enableSmsEdit(false);
+                                setSmsSettings({
+                                    interval_seconds:'',
+                                    phone_numbers:[''],
+                                    is_enabled:false
+                                });
+                            }}
+                        >
+                            Discard Changes
+                        </button>
+                    </div>
+                </div>
              </div>}
             </div>
         </div>

@@ -1,8 +1,8 @@
 from django.shortcuts import render
 from rest_framework import generics
-from .models import User,RealTimeData,profile_pic,aiMessages,cropSpecs,arduinoData,climateLocation,climateAverageDataPerMonth
+from .models import User,RealTimeData,profile_pic,aiMessages,cropSpecs,arduinoData,climateLocation,climateAverageDataPerMonth,SMSSettings,SMSPhoneNumber,SMSLog
 from rest_framework.permissions import IsAuthenticated,AllowAny
-from .serializer import UserSerializer,RealTimeDataSerializer,ImageSerializer,OnStartDataSerializer,aiMessagesSerializer,cropsSpecificationSerializer,arduinoDataSerializer,averageClimateDataPerMonthSerializer
+from .serializer import UserSerializer,RealTimeDataSerializer,ImageSerializer,OnStartDataSerializer,aiMessagesSerializer,cropsSpecificationSerializer,arduinoDataSerializer,averageClimateDataPerMonthSerializer,SMSSettingsSerializer,SMSLogSerializer
 from rest_framework.response import Response
 from rest_framework import status
 import json
@@ -231,8 +231,8 @@ class getAiMessages(generics.ListCreateAPIView):
     def post(self,request):
        print(request.data)
     #  url = "https://gemini-pro-ai.p.rapidapi.com/"
-       genai.configure(api_key="AIzaSyDrUD7esKFGnO0b8EvpVGLtOiEpYdpkbW4")
-       model = genai.GenerativeModel('gemini-1.5-flash')
+       genai.configure(api_key="AIzaSyD2aILZSjqcXNQ8s01iR6RoSFjNvBpzYYA")
+       model = genai.GenerativeModel('gemini-2.0-flash')
 
         # Generate response
        response = model.generate_content(request.data['request'])
@@ -281,9 +281,56 @@ class cropsSpecification(generics.ListCreateAPIView):
     def post(self, request):
         try:
             data = request.data
-            language = request.query_params.get('ln')
+            language = request.query_params.get('ln', 'English')
+            user = request.user
             
-            response = suggest_plant(0.18, 0.13, 0.25, 6.5, 70, 24, 70, language)
+            # Get latest sensor data for the user
+            latest_sensor_data = RealTimeData.objects.filter(user=user).order_by('-created').first()
+            
+            if not latest_sensor_data:
+                # Use default values if no sensor data available
+                nitrogen = 0.18
+                phosphorous = 0.13
+                potassium = 0.25
+                temperature = 24
+                humidity = 70
+                moisture = 70
+                ph = 6.5
+            else:
+                # Use actual sensor readings
+                nitrogen = latest_sensor_data.Nitrogen / 100.0  # Convert to percentage
+                phosphorous = latest_sensor_data.Phosporous / 100.0
+                potassium = latest_sensor_data.Potassium / 100.0
+                temperature = latest_sensor_data.Temperature
+                humidity = latest_sensor_data.Humidity
+                moisture = latest_sensor_data.Moisture
+                ph = 6.5  # Default pH as it's not in sensor data
+            
+            # Get user location data
+            user_location = climateLocation.objects.filter().order_by('-created_at').first()
+            location_context = None
+            if user_location:
+                location_context = f"{user_location.Sub_county}, {user_location.County}, {user_location.Country}"
+            
+            # Determine current season based on month (East African context)
+            current_month = timezone.now().month
+            if current_month in [12, 1, 2]:
+                season = "dry season"
+            elif current_month in [3, 4, 5]:
+                season = "long rains"
+            elif current_month in [6, 7, 8]:
+                season = "cool dry season"
+            else:
+                season = "short rains"
+            
+            print(f"Using sensor data - N: {nitrogen}, P: {phosphorous}, K: {potassium}, T: {temperature}, H: {humidity}, M: {moisture}")
+            print(f"Location: {location_context}, Season: {season}")
+            
+            response = suggest_plant(
+                nitrogen, phosphorous, potassium, ph, 
+                humidity, temperature, moisture, language,
+                location=location_context, season=season
+            )
             
             # Add this check to handle empty responses
             if not response or len(response) == 0:
@@ -677,3 +724,36 @@ def compare_crop_across_countries(request):
                           key=lambda x: x[1].get('average_price', 0) if 'error' not in x[1] else 0)[0] 
                           if comparison_data else None
     })
+
+class SMSSettingsView(generics.RetrieveUpdateAPIView):
+    serializer_class = SMSSettingsSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_object(self):
+        sms_settings, created = SMSSettings.objects.get_or_create(user=self.request.user)
+        return sms_settings
+    
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        phone_numbers = request.data.get('phone_numbers', [])
+        print("phone numbers are ",phone_numbers)
+
+
+        data = request.data.copy()
+        data['phone_numbers_data'] = phone_numbers
+        
+        serializer = self.get_serializer(instance, data=data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class SMSLogView(generics.ListAPIView):
+    serializer_class = SMSLogSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        user_sms_settings = SMSSettings.objects.filter(user=self.request.user).first()
+        if user_sms_settings:
+            return SMSLog.objects.filter(sms_settings=user_sms_settings).order_by('-sent_at')
+        return SMSLog.objects.none()

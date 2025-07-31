@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import User,RealTimeData,profile_pic,aiMessages,cropSpecs,arduinoData,climateAverageDataPerMonth,climateLocation
+from .models import User,RealTimeData,profile_pic,aiMessages,cropSpecs,arduinoData,climateAverageDataPerMonth,climateLocation,SMSSettings,SMSPhoneNumber,SMSLog
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -54,5 +54,59 @@ class averageClimateDataPerMonthSerializer(serializers.ModelSerializer):
     class Meta:
         model = climateAverageDataPerMonth
         fields = ['Month', 'Temperature', 'Humidity', 'Rainfall_mm', 'created_at', 'Location']
+
+class SMSPhoneNumberSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SMSPhoneNumber
+        fields = ['id', 'phone_number', 'is_active']
+
+class SMSSettingsSerializer(serializers.ModelSerializer):
+    phone_numbers = SMSPhoneNumberSerializer(many=True, read_only=True)
+    phone_numbers_data = serializers.ListField(
+        child=serializers.CharField(max_length=20),
+        write_only=True,
+        required=False
+    )
+    
+    class Meta:
+        model = SMSSettings
+        fields = ['id', 'interval_seconds', 'is_enabled', 'phone_numbers', 'phone_numbers_data', 'last_sent', 'created_at', 'updated_at']
+        read_only_fields = ['last_sent', 'created_at', 'updated_at']
+    
+    def create(self, validated_data):
+        phone_numbers_data = validated_data.pop('phone_numbers_data', [])
+        sms_settings = SMSSettings.objects.create(**validated_data)
+        
+        for phone_number in phone_numbers_data:
+            if phone_number.strip():
+                SMSPhoneNumber.objects.create(
+                    sms_settings=sms_settings,
+                    phone_number=phone_number.strip()
+                )
+        
+        return sms_settings
+    
+    def update(self, instance, validated_data):
+        phone_numbers_data = validated_data.pop('phone_numbers_data', None)
+        
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        
+        if phone_numbers_data is not None:
+            instance.phone_numbers.all().delete()
+            for phone_number in phone_numbers_data:
+                if phone_number.strip():
+                    SMSPhoneNumber.objects.create(
+                        sms_settings=instance,
+                        phone_number=phone_number.strip()
+                    )
+        
+        return instance
+
+class SMSLogSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SMSLog
+        fields = ['id', 'phone_number', 'message', 'status', 'sent_at', 'error_message']
 
    

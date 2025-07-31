@@ -103,4 +103,35 @@ class climateAverageDataPerMonth(models.Model):
   Rainfall_mm=models.IntegerField(blank=False)
   created_at=models.DateTimeField(default=timezone.now())
   Location=models.ForeignKey(climateLocation,related_name='climateLocation',on_delete=models.CASCADE)
+
+class SMSSettings(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='sms_settings')
+    interval_seconds = models.IntegerField(default=30, help_text="Seconds between SMS notifications")
+    is_enabled = models.BooleanField(default=False)
+    created_at = models.DateTimeField(default=timezone.now)
+    updated_at = models.DateTimeField(auto_now=True)
+    last_sent = models.DateTimeField(null=True, blank=True)
+    
+    def __str__(self):
+        return f"SMS Settings for {self.user.username}"
+
+class SMSPhoneNumber(models.Model):
+    sms_settings = models.ForeignKey(SMSSettings, on_delete=models.CASCADE, related_name='phone_numbers')
+    phone_number = models.CharField(max_length=20)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(default=timezone.now)
+    
+    def __str__(self):
+        return f"{self.phone_number} for {self.sms_settings.user.username}"
+
+class SMSLog(models.Model):
+    sms_settings = models.ForeignKey(SMSSettings, on_delete=models.CASCADE, related_name='sms_logs')
+    phone_number = models.CharField(max_length=20)
+    message = models.TextField()
+    status = models.CharField(max_length=20, choices=[('sent', 'Sent'), ('failed', 'Failed'), ('pending', 'Pending')])
+    sent_at = models.DateTimeField(default=timezone.now)
+    error_message = models.TextField(null=True, blank=True)
+    
+    def __str__(self):
+        return f"SMS to {self.phone_number} - {self.status}"
   
