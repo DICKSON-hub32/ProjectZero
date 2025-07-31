@@ -331,6 +331,7 @@ class cropsSpecification(generics.ListCreateAPIView):
                 humidity, temperature, moisture, language,
                 location=location_context, season=season
             )
+            print("response,--------------------",response)
             
             # Add this check to handle empty responses
             if not response or len(response) == 0:
